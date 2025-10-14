@@ -97,8 +97,8 @@ title('Traiettoria ottenuta con Direct Shooting + fmincon');
 
 % plot controls
 figure('Position',[300 300 900 400]);
-subplot(2,1,1); stairs(Tu, u1_opt, 'LineWidth',1.5); ylabel('u_1'); grid on;
-subplot(2,1,2); stairs(Tu, u2_opt, 'LineWidth',1.5); ylabel('u_2'); xlabel('t [s]'); grid on;
+subplot(2,1,1); stairs(Tu, u1_opt, 'LineWidth',1.5); ylabel('u_1 = TPS'); grid on;
+subplot(2,1,2); stairs(Tu, u2_opt, 'LineWidth',1.5); ylabel('u_2 = Steering Speed'); xlabel('t [s]'); grid on;
 
 %% ===================== Local functions ==================================
 
