@@ -1,4 +1,4 @@
-function dH = dHdu(u, Tu, LMB, ~, m, R)
+function dH = dHdu(u, Tu, LMB, t, m, R)
 % dHdu - Calcola il gradiente della Hamiltoniana rispetto al controllo
 %
 % INPUT:
@@ -9,6 +9,9 @@ function dH = dHdu(u, Tu, LMB, ~, m, R)
 %
 % OUTPUT:
 %   dH    - gradiente Hamiltoniana rispetto a u [2xN]
+
+ u1 = interp1(Tu, u(1,:), t);
+ u2 = interp1(Tu, u(2,:), t);
 
     L_u = R*u;  % derivata della parte quadratica del costo
     B  = [0 0;

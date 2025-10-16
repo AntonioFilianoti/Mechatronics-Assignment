@@ -1,3 +1,7 @@
+clear
+clc
+
+
 %% ========================================================================
 %  Optimal Control with Adjoint Equations (Nonlinear System)
 %  ------------------------------------------------------------------------
@@ -11,26 +15,28 @@
 clear; close all; clc;
 
 %% ------------------------ Parametri del modello -------------------------
-m   = 1;          % massa [kg]
+m   = 100;          % massa [kg]
 Cd  = 0.35;       % coefficiente di resistenza
 t0  = 0;          % tempo iniziale [s]
-tf  = 10;         % tempo finale [s]
+tf  = 25*4;         % tempo finale [s]
 
 % Stati: [x; y; theta; v]
-pos_i = [0; 0; pi/4];      % posizione e orientamento iniziali
-pos_f = [10; 10; 0];       % posizione e orientamento finali
+pos_i = [0; 0; pi/4];  
+pos_f = [10; 10; pi/4];
+% pos_i = [0; 0;0];      % posizione e orientamento iniziali
+% pos_f = [10; 0; 0];       % posizione e orientamento finali
 vel_i = 0;                 % velocità iniziale
-vel_f = 1;                 % velocità finale
+vel_f = 0;                 % velocità finale
 
 z_i = [pos_i; vel_i];
 z_f = [pos_f; vel_f];
 
 %% ----------------------- Pesi e vincoli del costo -----------------------
-R = diag([0.0001, 0.0001]);             % peso sul controllo
-Q = 0.05;                       % peso su penalizzazione velocità
-P = diag([1000, 1000, 1, 1]);     % peso su stato finale
-alpha = 10;                    % peso vincolo morbido (soft constraint)
-sigma = 10;                     % parametro di “softness”
+R = diag([1, 1]);             % peso sul controllo
+Q = 0;                       % peso su penalizzazione velocità
+P = diag([200, 200, 1, 100]);     % peso su stato finale
+alpha = 0;                    % peso vincolo morbido (soft constraint)
+sigma = 0.1;                     % parametro di “softness”
 r = 1;                          % raggio vincolo circolare
 xc = 5; yc = 5;                 % centro vincolo
 
@@ -51,65 +57,63 @@ legend('Vincolo morbido', 'Start', 'Goal');
 title('Problema di controllo ottimo con vincolo morbido');
 
 %% --------------------------- Discretizzazione ---------------------------
-Nsegment = 500;                       % numero di passi temporali
+Nsegment = 2000;                       % numero di passi temporali
 Tu = linspace(t0, tf, Nsegment);       % vettore temporale
 options = odeset('RelTol',1e-4,'AbsTol',1e-4);
+options_state = odeset('RelTol',1e-12,'AbsTol',1e-14);
 
 %% ----------------------- Parametri dell’iterazione ----------------------
-Nmax = 5000;                           % massimo numero iterazioni
-step = 5e-5;                           % passo di aggiornamento controllo
+Nmax = 5*10000;                           % massimo numero iterazioni
+step = 5e-3;                           % passo di aggiornamento controllo
 eps  = 1e-2;                           % tolleranza di arresto
 u = [ones(1, Nsegment); zeros(1, Nsegment)]; % controllo iniziale
 
 %% ------------------------- Procedura Iterativa --------------------------
-for ii = 1:Nmax
+for ii = 1%:Nmax
 
-    % 1) Integrazione avanti degli stati
-    tic
-    [Tz, Z] = ode45(@(t,z) stateEq(t,z,u,Tu,m,Cd), [t0 tf], z_i, options);
-    toc
+    [Tz, Z] = ode45(@(t,z) stateEq_new(t,z,u,Tu,m,Cd), [t0 tf], z_i, options);
 
-    % 2) Integrazione indietro delle aggiunte
-    Z_tf = Z(end,:)';
-    lmb_tf = P*(Z_tf - z_f);
-    [Tlmb, lmb] = ode45(@(t,l) AdjointEq(t,l,Z,Tz,Q,sigma,alpha,xc,yc,r,Cd,m), [t0 tf], lmb_tf, options);
+    % Z(abs(Z) < 1e-15) = 0;
 
-    % Ribalta i risultati per allineare i tempi
-    lmb = flipud(lmb);
-    Tlmb = flipud(Tlmb);
-
-    % Interpola le aggiunte per allinearle ai tempi di stato
-    LMB = interp1(Tlmb, lmb, Tu, 'linear', 'extrap')';
+    Z_tf = Z(end,:).';
     
-    % 3) Calcolo del gradiente della Hamiltoniana
-    dH = dHdu(u, Tu, LMB, Tz, m, R);
-    H_Norm = norm(dH, 'fro');
+   lmb_tf = P*(Z_tf-z_f);
 
-    % Evita divergenza numerica
-    if H_Norm >= 1e10
-        H_Norm = 1e9;
-        dH = dH ./ 1e6;
-    end
+   [Tlmb, lmb] = ode45(@(t,lmb) AdjointEq_new(t,lmb,Z,Tz,Q,sigma,alpha,xc,yc,r,Cd,m,lmb_tf  ), [tf t0], lmb_tf, options);
+   Tlmb = flipud(Tlmb); 
+   lmb = flipud(lmb);
 
-    % 4) Aggiornamento controllo (gradiente discendente)
-    u = u - step * dH;
+   lmb1 = interp1(Tlmb, lmb(:,1), Tz);
+   lmb2 = interp1(Tlmb, lmb(:,2), Tz);
+   lmb3 = interp1(Tlmb, lmb(:,3), Tz);
+   lmb4 = interp1(Tlmb, lmb(:,4), Tz);
 
-    % Condizione di uscita opzionale
-    if H_Norm < eps
-        disp(['Convergenza raggiunta in ', num2str(ii), ' iterazioni.']);
-        break;
-    end
+   LMB = [lmb1 lmb2 lmb3 lmb4]';
+   %LMB(abs(LMB) < 1e-11) = 0;
+   dH = dHdu_new(u, Tu, LMB, Tz, m, R);
+   dH_norm = norm(dH, 'fro')
 
-    a=0;
+   if dH_norm < eps
+       break;
+   else 
+       u_old = u;
+       u = IterControl_new(dH, Tz, u_old, Tu, step);
+       u(abs(u) < 1e-13) = 0;
+   end
+
+
+
 end
 
 %% ------------------------- Visualizzazione finale -----------------------
 Z1 = interp1(Tz, Z(:,1), Tu);
 Z2 = interp1(Tz, Z(:,2), Tu);
 
+
+plot(x_cons, y_cons, 'k--', 'LineWidth', 1.5); 
+hold on; grid on; grid minor;
+scatter(pos_i(1), pos_i(2), 70, 'g', 'filled');
+scatter(pos_f(1), pos_f(2), 70, 'r', 'filled'); 
 plot(Z1, Z2, 'b', 'LineWidth', 2);
 legend('Vincolo morbido', 'Start', 'Goal', 'Traiettoria ottima');
 title('Traiettoria finale dopo ottimizzazione');
-
-
-

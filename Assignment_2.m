@@ -11,7 +11,7 @@ clear; close all; clc;
 %% ------------------------ Problem definition -----------------------------
 m   = 1;       % massa [kg]
 Cd  = 0.35;    % coefficiente di resistenza
-t0  = 0; tf = 4;
+t0  = 0; tf = 7;
 
 % Stati: z = [x; y; theta; v]
 z0 = [0; 0; pi/4; 0];     % stato iniziale
