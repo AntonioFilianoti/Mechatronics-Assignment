@@ -75,8 +75,8 @@ for ii = 1:Nmax
     [Tlmb, lmb] = ode45(@(t,l) AdjointEq(t,l,Z,Tz,Q,sigma,alpha,xc,yc,r,Cd,m), [t0 tf], lmb_tf, options);
 
     % Ribalta i risultati per allineare i tempi
-    lmb = flipud(lmb);
-    Tlmb = flipud(Tlmb);
+    lmb = sort(lmb);
+    Tlmb = sort(Tlmb);
 
     % Interpola le aggiunte per allinearle ai tempi di stato
     LMB = interp1(Tlmb, lmb, Tu, 'linear', 'extrap')';

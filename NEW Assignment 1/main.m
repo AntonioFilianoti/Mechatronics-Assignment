@@ -15,30 +15,43 @@ clc
 clear; close all; clc;
 
 %% ------------------------ Parametri del modello -------------------------
-m   = 100;          % massa [kg]
-Cd  = 0.35;       % coefficiente di resistenza
+m   = 1;          % massa [kg]
+Cd  = 0.15;       % coefficiente di resistenza
 t0  = 0;          % tempo iniziale [s]
-tf  = 25*4;         % tempo finale [s]
+tf  = 1.6;         % tempo finale [s]
 
 % Stati: [x; y; theta; v]
-pos_i = [0; 0; pi/4];  
-pos_f = [10; 10; pi/4];
-% pos_i = [0; 0;0];      % posizione e orientamento iniziali
-% pos_f = [10; 0; 0];       % posizione e orientamento finali
+pos_i = [0; 0; 0];  
+pos_f = [1;1; pi/3];
+
 vel_i = 0;                 % velocità iniziale
 vel_f = 0;                 % velocità finale
 
 z_i = [pos_i; vel_i];
 z_f = [pos_f; vel_f];
 
+% max state vector used for normalization/scaling
+xmax_vec = [pos_f(1:2); 2*pi/3;1.5];
+% max control vector used for normalization/scaling
+umax_vec = [1, 1]';
 %% ----------------------- Pesi e vincoli del costo -----------------------
-R = diag([1, 1]);             % peso sul controllo
-Q = 0;                       % peso su penalizzazione velocità
-P = diag([200, 200, 1, 100]);     % peso su stato finale
-alpha = 0;                    % peso vincolo morbido (soft constraint)
-sigma = 0.1;                     % parametro di “softness”
-r = 1;                          % raggio vincolo circolare
-xc = 5; yc = 5;                 % centro vincolo
+w1 = 0.2;
+w2 = 0.2;
+%final state weight
+P = diag(1./xmax_vec.^2);
+P = P.*diag([180 180 20 0]);
+%optimal control weight
+R = diag(1./umax_vec.^2);
+R = R.*diag([w1 w2]);
+
+Q = 0.05;                       % peso su penalizzazione velocità
+
+alpha = 2;                    % peso vincolo morbido (soft constraint)
+sigma = 0.01;                     % parametro di “softness”
+xc = 0.65;
+yc = 0.65;
+r = 0.2;
+            
 
 %% -------------------------- Plot del vincolo ----------------------------
 theta = linspace(0, 2*pi, 400);
@@ -65,32 +78,50 @@ options_state = odeset('RelTol',1e-12,'AbsTol',1e-14);
 %% ----------------------- Parametri dell’iterazione ----------------------
 Nmax = 5*10000;                           % massimo numero iterazioni
 step = 5e-3;                           % passo di aggiornamento controllo
-eps  = 1e-2;                           % tolleranza di arresto
+eps  = 5e-3;                           % tolleranza di arresto
 u = [ones(1, Nsegment); zeros(1, Nsegment)]; % controllo iniziale
 
 %% ------------------------- Procedura Iterativa --------------------------
-for ii = 1%:Nmax
+for ii = 1:Nmax
 
     [Tz, Z] = ode45(@(t,z) stateEq_new(t,z,u,Tu,m,Cd), [t0 tf], z_i, options);
 
     % Z(abs(Z) < 1e-15) = 0;
 
-    Z_tf = Z(end,:).';
+    Z_tf = Z(end,:)';
     
    lmb_tf = P*(Z_tf-z_f);
 
    [Tlmb, lmb] = ode45(@(t,lmb) AdjointEq_new(t,lmb,Z,Tz,Q,sigma,alpha,xc,yc,r,Cd,m,lmb_tf  ), [tf t0], lmb_tf, options);
-   Tlmb = flipud(Tlmb); 
-   lmb = flipud(lmb);
+  [Tlmb_sorted, idx] = sort(Tlmb);   % increasing times
+    lmb_sorted = lmb(idx, :);
 
-   lmb1 = interp1(Tlmb, lmb(:,1), Tz);
-   lmb2 = interp1(Tlmb, lmb(:,2), Tz);
-   lmb3 = interp1(Tlmb, lmb(:,3), Tz);
-   lmb4 = interp1(Tlmb, lmb(:,4), Tz);
+    % Now interpolate using increasing time vector
+    lmb1 = interp1(Tlmb_sorted, lmb_sorted(:,1), Tz);
+    lmb2 = interp1(Tlmb_sorted, lmb_sorted(:,2), Tz);
+    lmb3 = interp1(Tlmb_sorted, lmb_sorted(:,3), Tz);
+    lmb4 = interp1(Tlmb_sorted, lmb_sorted(:,4), Tz);
+
 
    LMB = [lmb1 lmb2 lmb3 lmb4]';
-   %LMB(abs(LMB) < 1e-11) = 0;
-   dH = dHdu_new(u, Tu, LMB, Tz, m, R);
+   
+
+%-----cost function----------
+Z1_Tz = Z(:,1);  Z2_Tz = Z(:,2);  Z3_Tz = Z(:,3);  Z4_Tz = Z(:,4);
+% u(t) sulla griglia Tz
+u1_Tz = interp1(Tu, u(1,:), Tz, 'linear', 'extrap');
+u2_Tz = interp1(Tu, u(2,:), Tz, 'linear', 'extrap');
+
+Soft_cost_fun = @(x,y) alpha.*exp((r^2 - (x-xc).^2 - (y-yc).^2)/sigma);
+
+L_Tz = 0.5*(u1_Tz.*(w1*u1_Tz) + u2_Tz.*(w2*u2_Tz)) ...
+       + Q*(Z4_Tz.^3) + Soft_cost_fun(Z1_Tz, Z2_Tz);
+
+J(ii,1) = 0.5*(Z(end,:).'-z_f)'*P*(Z(end,:).'-z_f) + trapz(Tz, L_Tz);
+
+% ---dH----
+  [dH ]= dHdu_new(u, Tu,lmb4, lmb3,Tz, m, R);
+  %dH_1_norm = norm(dH_1, 'fro')
    dH_norm = norm(dH, 'fro')
 
    if dH_norm < eps
@@ -117,3 +148,8 @@ scatter(pos_f(1), pos_f(2), 70, 'r', 'filled');
 plot(Z1, Z2, 'b', 'LineWidth', 2);
 legend('Vincolo morbido', 'Start', 'Goal', 'Traiettoria ottima');
 title('Traiettoria finale dopo ottimizzazione');
+
+%% plot J
+
+%X = 1 : ii;
+%semilogy(X, J(X,1))

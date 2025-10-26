@@ -9,7 +9,7 @@ function dlmb = AdjointEq_new(t,lmb,Z,Tz,Q,sigma,alpha,xc,yc,r,Cd,m, lmb_tf )
     % u1 = interp1(Tu,u(1,:),t);
     % u2 = interp1(Tu,u(2,:),t);
     
-   A = [0 0 -z4*sin(z3) cos(z3);
+   A = [0 0 -z4*sin(z3)  cos(z3);
          0 0  z4*cos(z3) sin(z3);
          0 0  0          0;
          0 0  0       -2*Cd*z4/m];
@@ -23,5 +23,5 @@ function dlmb = AdjointEq_new(t,lmb,Z,Tz,Q,sigma,alpha,xc,yc,r,Cd,m, lmb_tf )
     % Gradiente del Lagrangiano rispetto a z
     Lz = [a b 0 3*Q*z4^2];
     dlmb = -(Lz + (lmb'*A))';
-    % dlmb = -Lz' - A.' * lmb;
+   %dlmb = -Lz' - A * lmb;
 end
