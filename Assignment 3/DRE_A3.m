@@ -1,4 +1,4 @@
-function [OutVect] = DRE(t,p,Q,R,Z,Tz,u,Tu)
+function [OutVect] = DRE_A3(t,p,Q,R,Z,Tz,u,Tu, Cd, m, mu_r, epsilon)
 
 % evaluation of the state at time @t
 Nstates = size(Z,2);
@@ -13,13 +13,11 @@ uk = zeros(1,Nu);
 for ii = 1:Nu
     uk(:,ii) = interp1(Tu,u(:,ii),t);
 end
-m = 1;
-Cd = 0.15;
 
 A = [0 0 -zk(4)*sin(zk(3))  cos(zk(3));
          0 0  zk(4)*cos(zk(3))  sin(zk(3));
          0 0  0           0;
-         0 0  0       -2*Cd*zk(4)/m];
+         0 0  0       -2*Cd*zk(4)/m-(mu_r*9.81)/(cosh(zk(4)/epsilon)^2*epsilon)];
 
 B = [0 0; 0 0; 0 1; 1/m 0];
 

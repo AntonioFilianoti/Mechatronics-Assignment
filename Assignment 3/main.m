@@ -13,6 +13,8 @@ clear; close all; clc;
 global m Cd mu_r epsilon
 m   = 1;          % massa del corpo [kg]
 Cd  = 0.15;       % coefficiente di resistenza aerodinamica (attrito quadratico)
+epsilon = 1;
+mu_r = 1;
 t0  = 0;          % tempo iniziale [s]
 tf  = 1.6;        % tempo finale [s]
 
@@ -75,14 +77,14 @@ options_state = odeset('RelTol',1e-12,'AbsTol',1e-14);      % tolleranze ODE per
 %% ----------------------- Parametri dell’iterazione ----------------------
 Nmax = 5*10000;                         % numero massimo di iterazioni
 step = 5e-3;                            % passo di aggiornamento del controllo
-eps  = 5e-3;                            % soglia di convergenza
+eps  = 0.6;                            % soglia di convergenza
 u = [ones(1, Nsegment); zeros(1, Nsegment)];  % controllo iniziale (u1=1, u2=0)
 
 %% ------------------------- Procedura Iterativa --------------------------
 for ii = 1:Nmax
 
     % Integrazione delle equazioni di stato in avanti nel tempo
-    [Tz, Z] = ode45(@(t,z) stateEq_new(t,z,u,Tu,m,Cd), [t0 tf], z_i, options);
+    [Tz, Z] = ode45(@(t,z) stateEq_A3(t,z,u,Tu,m ,Cd, mu_r, epsilon), [t0 tf], z_i, options);
 
     % Stato finale ottenuto
     Z_tf = Z(end,:)';
@@ -91,7 +93,7 @@ for ii = 1:Nmax
     lmb_tf = P*(Z_tf - z_f);
 
     % Integrazione delle equazioni aggiunte (costate) all’indietro nel tempo
-    [Tlmb, lmb] = ode45(@(t,lmb) AdjointEq_new(t,lmb,Z,Tz,Q,sigma,alpha,xc,yc,r,Cd,m,lmb_tf), [tf t0], lmb_tf, options);
+    [Tlmb, lmb] = ode45(@(t,lmb) AdjointEq_A3(t,lmb,Z,Tz,Q,sigma,alpha,xc,yc,r,lmb_tf,m ,Cd, mu_r, epsilon), [tf t0], lmb_tf, options);
 
     % Ordinamento temporale crescente (per interpolazione)
     [Tlmb_sorted, idx] = sort(Tlmb);
@@ -172,6 +174,7 @@ Nu = size(u,1); % number of controls
 % Sampled time history
 T = linspace(0,Tz(end),N);
 
+
 % Interpolation/sampling of the state and control 
 zk = zeros(N,Ns);
 uk = zeros(N,Nu);
@@ -194,7 +197,7 @@ tf = T(end);
 p0 = P(1:end)';
 
 % Integration of the matrix riccati equation
-[Tp,PP] = ode23(@(t,p) DRE(t,p,Q,R,zk,T,uk,T), flip(T), p0, options);
+[Tp,PP] = ode23(@(t,p) DRE_A3(t,p,Q,R,zk,T,uk,T, Cd, m, mu_r, epsilon), flip(T), p0, options);
 
 % From backward to forward dynamics (they are stored in the reversed order)
 PP = flipud(PP);
@@ -223,7 +226,7 @@ for ii = 1:N % Note: try also reshape.m
     A(ii,:,:) = [0 0 -zk(ii,4)*sin(zk(ii,3))  cos(zk(ii,3));
          0 0  zk(ii,4)*cos(zk(ii,3))  sin(zk(ii,3));
          0 0  0           0;
-         0 0  0       -2*Cd*zk(ii,4)/m];
+         0 0  0       -2*Cd*zk(ii,4)/m- (mu_r*9.81)/(cosh(zk(ii,4)/epsilon)^2*epsilon)];
     % Uncontrolled system poles
     PolesUC(ii,:) = eig(squeeze(A(ii,:,:)));
     % Gain matrix C
@@ -244,7 +247,7 @@ K1 = squeeze(K1);
 Wamp = 1; % amplitude of the disturbances
 
 
-out = sim('LQR_SImulink_Ass_1');
+out = sim('LQR_SImulink_Ass_3');
 %% VANNO SISTEMATE LE LABEL
 Xs = squeeze(out.Xs.data);
 Xref = squeeze(out.Xref.data);

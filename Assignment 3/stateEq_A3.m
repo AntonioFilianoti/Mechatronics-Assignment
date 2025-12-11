@@ -1,4 +1,4 @@
-function [dz] = stateEq_new(t,z,u,Tu,m,Cd)
+function [dz] = stateEq_A3(t,z,u,Tu, m, Cd, mu_r, epsilon)
 
 %% ========================================================================
 % Funzione: stateEq_new
@@ -44,5 +44,5 @@ function [dz] = stateEq_new(t,z,u,Tu,m,Cd)
     dz(1) = z(4)*cos(z(3));              % ẋ = v * cos(θ)
     dz(2) = z(4)*sin(z(3));              % ẏ = v * sin(θ)
     dz(3) = u2;                          % θ̇ = u2 (velocità angolare)
-    dz(4) = 1/m*(u1 - Cd*z(4)^2 - mu_r*m*g*tanh(z(4)/epsilon));        % v̇ = (u1 - Cd*v²)/m
+    dz(4) = 1/m*(u1 - Cd*z(4)^2 - mu_r*m*9.81*tanh(z(4)/epsilon));        % v̇ = (u1 - Cd*v²)/m
 end

@@ -1,4 +1,4 @@
-function dlmb = AdjointEq_new(t,lmb,Z,Tz,Q,sigma,alpha,xc,yc,r,Cd,m, lmb_tf )
+function dlmb = AdjointEq_A3(t,lmb,Z,Tz,Q,sigma,alpha,xc,yc,r, lmb_tf,m, Cd, mu_r ,epsilon )
 %% ========================================================================
 % Funzione: AdjointEq_new
 % ------------------------------------------------------------------------
@@ -58,7 +58,7 @@ function dlmb = AdjointEq_new(t,lmb,Z,Tz,Q,sigma,alpha,xc,yc,r,Cd,m, lmb_tf )
     A = [0 0 -z4*sin(z3)  cos(z3);
          0 0  z4*cos(z3)  sin(z3);
          0 0  0           0;
-         0 0  0       -2*Cd*z4/m];
+         0 0  0       -2*Cd*z4/m - (mu_r*9.81)/(cosh(z4/epsilon)^2*epsilon)];
 
     % --------------------------------------------------------------------
     % Calcolo del gradiente del vincolo morbido rispetto a (x,y)
