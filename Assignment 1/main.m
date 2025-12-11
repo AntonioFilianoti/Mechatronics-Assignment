@@ -1,6 +1,3 @@
-clear
-clc
-
 %% ========================================================================
 %  Optimal Control with Adjoint Equations (Nonlinear System)
 %  ------------------------------------------------------------------------
@@ -211,9 +208,12 @@ PP_Matrix = zeros(Ns,Ns);
 K = zeros(N,Nu,Ns);
 A = zeros(N,Ns,Ns);
 Fc = zeros(N,Ns,Ns);
+
 PolesUC = zeros(N,Ns);
 PolesC = zeros(N,Ns);
+
 Xp = zeros(N,Ns);
+
 for ii = 1:N % Note: try also reshape.m
     % transformation vector -> matrix
     PP_Matrix(1:end) = PP(ii,:)';
