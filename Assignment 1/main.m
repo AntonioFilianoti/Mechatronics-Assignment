@@ -322,14 +322,8 @@ K1 = squeeze(K1);
 Wamp = 1; % amplitude of the disturbances
 
 
-% Gain = [T', K1];
-% size(K)
-% size(K1)
-
-%%
-
-sim('LQR_SImulink_Ass_1');
-
+out = sim('LQR_SImulink_Ass_1');
+%% VANNO SISTEMATE LE LABEL
 Xs = squeeze(out.Xs.data);
 Xref = squeeze(out.Xref.data);
 U = squeeze(out.U.data);
