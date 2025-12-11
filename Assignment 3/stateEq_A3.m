@@ -46,3 +46,4 @@ function [dz] = stateEq_A3(t,z,u,Tu, m, Cd, mu_r, epsilon)
     dz(3) = u2;                          % θ̇ = u2 (velocità angolare)
     dz(4) = 1/m*(u1 - Cd*z(4)^2 - mu_r*m*9.81*tanh(z(4)/epsilon));        % v̇ = (u1 - Cd*v²)/m
 end
+

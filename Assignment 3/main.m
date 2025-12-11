@@ -244,9 +244,20 @@ IC = [0;0; 0; 0];
 %K1 = squeeze(K);
 K1 = K(:,1,:);
 K1 = squeeze(K1);
-Wamp = 1; % amplitude of the disturbances
+% Wamp = 1; % amplitude of the disturbances
 
+%% EKF
 
+% observation matrix
+C = [1,0,0,0;
+    0,1,0,0];
+Qk= eye(2);
+
+Rk= [1,0;0,1];
+
+Wamp = 2;
+Wfreq = 10;      %[Hz]
+Namp = 1;
 out = sim('LQR_SImulink_Ass_3');
 %% VANNO SISTEMATE LE LABEL
 Xs = squeeze(out.Xs.data);
@@ -325,3 +336,4 @@ ax.TickLabelInterpreter = 'LaTex';
 drawnow
 
 % print(FigTag,'fig3_6.jpeg','-djpeg','-r600')
+
