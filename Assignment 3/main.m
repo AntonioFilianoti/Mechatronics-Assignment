@@ -64,7 +64,6 @@ scatter(pos_f(1), pos_f(2), 70, 'r', 'filled');             % punto finale
 xlabel('x'); ylabel('y');
 axis equal;
 grid on; grid minor;
-xlim([-2 12]); ylim([-2 12]);
 legend('Vincolo morbido', 'Start', 'Goal');
 title('Problema di controllo ottimo con vincolo morbido');
 
@@ -77,7 +76,7 @@ options_state = odeset('RelTol',1e-12,'AbsTol',1e-14);      % tolleranze ODE per
 %% ----------------------- Parametri dell’iterazione ----------------------
 Nmax = 5*10000;                         % numero massimo di iterazioni
 step = 5e-3;                            % passo di aggiornamento del controllo
-eps  = 0.6;                            % soglia di convergenza
+eps  = 0.01;                            % soglia di convergenza
 u = [ones(1, Nsegment); zeros(1, Nsegment)];  % controllo iniziale (u1=1, u2=0)
 
 %% ------------------------- Procedura Iterativa --------------------------
@@ -154,6 +153,7 @@ hold on; grid on; grid minor;
 scatter(pos_i(1), pos_i(2), 70, 'g', 'filled');
 scatter(pos_f(1), pos_f(2), 70, 'r', 'filled'); 
 plot(Z1, Z2, 'b', 'LineWidth', 2);
+axis equal
 legend('Vincolo morbido', 'Start', 'Goal', 'Traiettoria ottima');
 title('Traiettoria finale dopo ottimizzazione');
 
@@ -258,7 +258,7 @@ Rk= [1,0;0,1];
 Wamp = 2;
 Wfreq = 10;      %[Hz]
 Namp = 1;
-out = sim('LQR_SImulink_Ass_3');
+out = sim('EKF_SImulink_Ass_3');
 %% VANNO SISTEMATE LE LABEL
 Xs = squeeze(out.Xs.data);
 Xref = squeeze(out.Xref.data);
@@ -266,74 +266,99 @@ U = squeeze(out.U.data);
 Uopt = squeeze(out.Uopt.data);
 time = squeeze(out.time.data);
 
+%% FIGURA 1: Stati (x, y, phi, v)
 FigTag = figure;
-ax = axes;
-plot(time,Xref(1,:),'LineWidth',1,'LineStyle','--','color','b');
-hold on; grid on;
-plot(time,Xs(:,1),'LineWidth',0.5,'LineStyle','-','color','r');
-xlabel('$t$ [s]','Interpreter','LaTex')
-ylabel('$\dot{\theta}$ [rad/s]','Interpreter','LaTex')
-ax.FontSize = 14;
-ax.TickLabelInterpreter = 'LaTex';
 
-% print(FigTag,'fig3_1.jpeg','-djpeg','-r600')
+% x position
+subplot(2,2,1)
+plot(time, Xref(1,:), 'LineWidth', 1, 'LineStyle', '--', 'color', 'b'); hold on; grid on;
+plot(time, Xs(:,1), 'LineWidth', 0.5, 'LineStyle', '-', 'color', 'r');
+ylabel('$x_{position}$ [m]', 'Interpreter', 'LaTex')
+legend({'ref','sim'},'Interpreter','Latex','Location','best')
+ax = gca; ax.FontSize = 14; ax.TickLabelInterpreter = 'LaTex';
 
+% y position
+subplot(2,2,2)
+plot(time, Xref(2,:), 'LineWidth', 1, 'LineStyle', '--', 'color', 'b'); hold on; grid on;
+plot(time, Xs(:,2), 'LineWidth', 0.5, 'LineStyle', '-', 'color', 'r');
+ylabel('$y_{position}$ [m]', 'Interpreter', 'LaTex')
+legend({'ref','sim'},'Interpreter','Latex','Location','best')
+ax = gca; ax.FontSize = 14; ax.TickLabelInterpreter = 'LaTex';
+
+% phi
+subplot(2,2,3)
+plot(time, Xref(3,:), 'LineWidth', 1, 'LineStyle', '--', 'color', 'b'); hold on; grid on;
+plot(time, Xs(:,3), 'LineWidth', 0.5, 'LineStyle', '-', 'color', 'r');
+xlabel('$t$ [s]', 'Interpreter', 'LaTex'); ylabel('$\phi$ [rad]', 'Interpreter', 'LaTex')
+legend({'ref','sim'},'Interpreter','Latex','Location','best')
+ax = gca; ax.FontSize = 14; ax.TickLabelInterpreter = 'LaTex';
+
+% v speed
+subplot(2,2,4)
+plot(time, Xref(4,:), 'LineWidth', 1, 'LineStyle', '--', 'color', 'b'); hold on; grid on;
+plot(time, Xs(:,4), 'LineWidth', 0.5, 'LineStyle', '-', 'color', 'r');
+xlabel('$t$ [s]', 'Interpreter', 'LaTex'); ylabel('$v_{speed}$ [m/s]', 'Interpreter', 'LaTex')
+legend({'ref','sim'},'Interpreter','Latex','Location','best')
+ax = gca; ax.FontSize = 14; ax.TickLabelInterpreter = 'LaTex';
+
+%% FIGURA 2: Ingressi di controllo (u1, u2)
 FigTag = figure;
-ax = axes;
-plot(time,Xref(2,:),'LineWidth',1,'LineStyle','--','color','b');
-hold on; grid on;
-plot(time,Xs(:,2),'LineWidth',0.5,'LineStyle','-','color','r');
-xlabel('Time [s]','Interpreter','LaTex')
-ylabel('$\theta$ [rad]','Interpreter','LaTex')
-ax.FontSize = 14;
-ax.TickLabelInterpreter = 'LaTex';
 
-% print(FigTag,'fig3_2.jpeg','-djpeg','-r600')
+subplot(2,1,1)
+plot(time, Uopt(1,:), 'LineWidth', 1, 'LineStyle', '--', 'color', 'b'); hold on; grid on;
+plot(time, U(1,:), 'LineWidth', 0.5, 'LineStyle', '-', 'color', 'r');
+ylabel('$u_{1}$ [N]', 'Interpreter', 'LaTex')
+legend({'ref','sim'},'Interpreter','Latex','Location','best')
+ax = gca; ax.FontSize = 14; ax.TickLabelInterpreter = 'LaTex';
 
+subplot(2,1,2)
+plot(time, Uopt(2,:), 'LineWidth', 1, 'LineStyle', '--', 'color', 'b'); hold on; grid on;
+plot(time, U(2,:), 'LineWidth', 0.5, 'LineStyle', '-', 'color', 'r');
+xlabel('$t$ [s]', 'Interpreter', 'LaTex'); ylabel('$u_{2}$ [rad/s]', 'Interpreter', 'LaTex')
+legend({'ref','sim'},'Interpreter','Latex','Location','best')
+ax = gca; ax.FontSize = 14; ax.TickLabelInterpreter = 'LaTex';
+
+%% FIGURA 3: Errori di stato (delta x, y, phi, v)
 FigTag = figure;
-ax = axes;
-plot(time,Uopt,'LineWidth',1,'LineStyle','--','color','b');
-hold on; grid on;
-plot(time,U,'LineWidth',0.5,'LineStyle','-','color','r');
-xlabel('$t$ [s]','Interpreter','LaTex')
-ylabel('$C$ [Nm]','Interpreter','LaTex')
-ax.FontSize = 14;
-ax.TickLabelInterpreter = 'LaTex';
 
-% print(FigTag,'fig3_3.jpeg','-djpeg','-r600')
+subplot(2,2,1)
+plot(time, Xs(:,1)' - Xref(1,:), 'LineWidth', 1, 'Color', 'b'); hold on; grid on;
+ylabel('$\delta x$ [m]', 'Interpreter', 'LaTex')
+legend('Error','Interpreter','Latex','Location','best')
+ax = gca; ax.FontSize = 14; ax.TickLabelInterpreter = 'LaTex';
 
+subplot(2,2,2)
+plot(time, Xs(:,2)' - Xref(2,:), 'LineWidth', 1, 'Color', 'r'); hold on; grid on;
+ylabel('$\delta y$ [m]', 'Interpreter', 'LaTex')
+legend('Error','Interpreter','Latex','Location','best')
+ax = gca; ax.FontSize = 14; ax.TickLabelInterpreter = 'LaTex';
+
+subplot(2,2,3)
+plot(time, Xs(:,3)' - Xref(3,:), 'LineWidth', 1, 'Color', 'g'); hold on; grid on;
+xlabel('$t$ [s]', 'Interpreter', 'LaTex'); ylabel('$\delta\phi$ [rad]', 'Interpreter', 'LaTex')
+legend('Error','Interpreter','Latex','Location','best')
+ax = gca; ax.FontSize = 14; ax.TickLabelInterpreter = 'LaTex';
+
+subplot(2,2,4)
+plot(time, Xs(:,4)' - Xref(4,:), 'LineWidth', 1, 'Color', 'm'); hold on; grid on;
+xlabel('$t$ [s]', 'Interpreter', 'LaTex'); ylabel('$\delta v$ [m/s]', 'Interpreter', 'LaTex')
+legend('Error','Interpreter','Latex','Location','best')
+ax = gca; ax.FontSize = 14; ax.TickLabelInterpreter = 'LaTex';
+
+%% FIGURA 4: Errori di controllo (delta u1, u2)
 FigTag = figure;
-ax = axes;
-plot(time,Xs(:,1)'-Xref(1,:),'LineWidth',1,'LineStyle','-','Color','b');
-hold on; grid on;
-xlabel('$t$ [s]','Interpreter','LaTex')
-ylabel('$\dot{\delta\theta}$ [rad/s]','Interpreter','LaTex')
-ax.FontSize = 14;
-ax.TickLabelInterpreter = 'LaTex';
 
-% print(FigTag,'fig3_4.jpeg','-djpeg','-r600')
+subplot(2,1,1)
+plot(time, U(1,:) - Uopt(1,:), 'LineWidth', 1, 'Color', 'b'); hold on; grid on;
+ylabel('$\delta u_{1}$ [N]', 'Interpreter', 'LaTex')
+legend('Error','Interpreter','Latex','Location','best')
+ax = gca; ax.FontSize = 14; ax.TickLabelInterpreter = 'LaTex';
 
-FigTag = figure;
-ax = axes;
-plot(time,Xs(:,2)'-Xref(2,:),'LineWidth',1,'LineStyle','-','Color','b');
-hold on; grid on;
-xlabel('$t$ [s]','Interpreter','LaTex')
-ylabel('$\delta\theta$ [rad]','Interpreter','LaTex')
-ax.FontSize = 14;
-ax.TickLabelInterpreter = 'LaTex';
+subplot(2,1,2)
+plot(time, U(2,:) - Uopt(2,:), 'LineWidth', 1, 'Color', 'r'); hold on; grid on;
+xlabel('$t$ [s]', 'Interpreter', 'LaTex'); ylabel('$\delta u_{2}$ [rad/s]', 'Interpreter', 'LaTex')
+legend('Error','Interpreter','Latex','Location','best')
+ax = gca; ax.FontSize = 14; ax.TickLabelInterpreter = 'LaTex';
 
-% print(FigTag,'fig3_5.jpeg','-djpeg','-r600')
-
-FigTag = figure;
-ax = axes;
-plot(time,U-Uopt(:,1),'LineWidth',1,'LineStyle','-','Color','b');
-hold on; grid on;
-xlabel('$t$ [s]','Interpreter','LaTex')
-ylabel('$\delta C$ [Nm]','Interpreter','LaTex')
-legend({'$\delta c_1$','$\delta c_2$'},'Interpreter','Latex','location','best')
-ax.FontSize = 14;
-ax.TickLabelInterpreter = 'LaTex';
 drawnow
-
-% print(FigTag,'fig3_6.jpeg','-djpeg','-r600')
 
