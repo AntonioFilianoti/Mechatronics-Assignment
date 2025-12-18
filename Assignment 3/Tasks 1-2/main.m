@@ -76,7 +76,7 @@ options_state = odeset('RelTol',1e-12,'AbsTol',1e-14);      % tolleranze ODE per
 %% ----------------------- Parametri dell’iterazione ----------------------
 Nmax = 5*10000;                         % numero massimo di iterazioni
 step = 5e-3;                            % passo di aggiornamento del controllo
-eps  = 0.01;                            % soglia di convergenza
+eps  = 1;                            % soglia di convergenza
 u = [ones(1, Nsegment); zeros(1, Nsegment)];  % controllo iniziale (u1=1, u2=0)
 
 %% ------------------------- Procedura Iterativa --------------------------
@@ -256,6 +256,7 @@ Qk= eye(2);
 Rk= [1,0;0,1];
 
 Wamp = 2;
+Wpamp = 2;
 Wfreq = 10;      %[Hz]
 Namp = 1;
 out = sim('EKF_SImulink_Ass_3');
@@ -362,3 +363,148 @@ ax = gca; ax.FontSize = 14; ax.TickLabelInterpreter = 'LaTex';
 
 drawnow
 
+
+% %% --- PARAMETER ESTIMATION ---
+% guess_mu_r = 3;
+% 
+% Z = [Z guess_mu_r*ones(length(Z),1)];
+% zk = [zk guess_mu_r*ones(N,1)];
+% 
+% % observation matrix
+% C = [1,0,0,0,0;
+%     0,1,0,0,0];
+% Qk= eye(3);
+% 
+% 
+% %%
+% 
+% 
+% Rk= [1,0;0,1];
+% IC = [0;0; 0; 0; mu_r];
+% Wamp = 2;
+% Wpamp = 2;
+% Wfreq = 10;      %[Hz]
+% Namp = 1;
+% out_param = sim("Param_Simulink_Ass_3.slx");
+% 
+% Xs = squeeze(out_param.Xs.data);
+% Xobs = squeeze(out_param.Xobs.data);
+% time = squeeze(out_param.time.data);
+% 
+% %% --- FIGURA A1: STIMA POSIZIONE (x, y) ---
+% % Confronto tra posizione reale (Xs) e stimata (Xobs)
+% FigTag = figure;
+% 
+% % Subplot X
+% ax = subplot(211);
+% h2 = plot(time, Xs(:,1), 'r'); hold on;
+% h2.LineWidth = 2;              % Linea più spessa per il vero stato
+% h2.Color = [1, 0, 0, 0.4];     % Rosso semi-trasparente
+% h1 = plot(time, Xobs(:,1), 'b--'); % Blu tratteggiato per la stima
+% h1.LineWidth = 1.2;
+% grid on
+% legend([h2,h1], {'$x_{true}$', '$\hat{x}_{est}$'}, 'Interpreter', 'LaTex', 'Location', 'best')
+% ylabel('$x$ [m]', 'Interpreter', 'LaTex')
+% ax.FontSize = 16;
+% ax.TickLabelInterpreter = 'LaTex';
+% 
+% % Subplot Y
+% ax = subplot(212);
+% h2 = plot(time, Xs(:,2), 'r'); hold on;
+% h2.LineWidth = 2;
+% h2.Color = [1, 0, 0, 0.4];
+% h1 = plot(time, Xobs(:,2), 'b--');
+% h1.LineWidth = 1.2;
+% grid on
+% legend([h2,h1], {'$y_{true}$', '$\hat{y}_{est}$'}, 'Interpreter', 'LaTex', 'Location', 'best')
+% xlabel('$t$ [s]', 'Interpreter', 'LaTex')
+% ylabel('$y$ [m]', 'Interpreter', 'LaTex')
+% ax.FontSize = 16;
+% ax.TickLabelInterpreter = 'LaTex';
+% 
+% % print(FigTag,'figA1_Pos.jpeg','-djpeg','-r600')
+% 
+% % --- FIGURA A2: STIMA DINAMICA (phi, v) ---
+% % Confronto tra angoli e velocità
+% FigTag = figure;
+% 
+% % Subplot Phi
+% ax = subplot(211);
+% h2 = plot(time, Xs(:,3), 'r'); hold on;
+% h2.LineWidth = 2;
+% h2.Color = [1, 0, 0, 0.4];
+% h1 = plot(time, Xobs(:,3), 'b--');
+% h1.LineWidth = 1.2;
+% grid on
+% legend([h2,h1], {'$\phi_{true}$', '$\hat{\phi}_{est}$'}, 'Interpreter', 'LaTex', 'Location', 'best')
+% ylabel('$\phi$ [rad]', 'Interpreter', 'LaTex')
+% ax.FontSize = 16;
+% ax.TickLabelInterpreter = 'LaTex';
+% 
+% % Subplot Velocità
+% ax = subplot(212);
+% h2 = plot(time, Xs(:,4), 'r'); hold on;
+% h2.LineWidth = 2;
+% h2.Color = [1, 0, 0, 0.4];
+% h1 = plot(time, Xobs(:,4), 'b--');
+% h1.LineWidth = 1.2;
+% grid on
+% legend([h2,h1], {'$v_{true}$', '$\hat{v}_{est}$'}, 'Interpreter', 'LaTex', 'Location', 'best')
+% xlabel('$t$ [s]', 'Interpreter', 'LaTex')
+% ylabel('$v$ [m/s]', 'Interpreter', 'LaTex')
+% ax.FontSize = 16;
+% ax.TickLabelInterpreter = 'LaTex';
+% 
+% % print(FigTag,'figA2_Dyn.jpeg','-djpeg','-r600')
+% 
+% % --- FIGURA A3: STIMA PARAMETRO (Attrito) ---
+% % Questo è il plot più importante per il tuo obiettivo
+% FigTag = figure;
+% ax = axes;
+% 
+% % Plot del vero parametro (che potrebbe variare o essere costante)
+% h2 = plot(time, Xs(:,5), 'r'); hold on;
+% h2.LineWidth = 2.5;
+% h2.Color = [1, 0, 0, 0.4]; % Rosso trasparente per il valore vero
+% 
+% % Plot della stima del parametro
+% h1 = plot(time, Xobs(:,5), 'b'); 
+% h1.LineWidth = 1.5;
+% 
+% grid on
+% xlabel('$t$ [s]', 'Interpreter', 'LaTex')
+% ylabel('Friction $\mu$', 'Interpreter', 'LaTex')
+% title('Parameter Estimation: Friction Coefficient', 'Interpreter', 'LaTex')
+% legend([h2,h1], {'$\mu_{true}$', '$\hat{\mu}_{est}$'}, 'Interpreter', 'LaTex', 'Location', 'best')
+% 
+% % Zoom automatico per vedere meglio la convergenza
+% ylim([min(Xobs(:,5))*0.8, max(Xobs(:,5))*1.2])
+% 
+% ax.FontSize = 16;
+% ax.TickLabelInterpreter = 'LaTex';
+% 
+% % print(FigTag,'figA3_Param.jpeg','-djpeg','-r600')
+% 
+% % --- FIGURA A4: ERRORE DI STIMA PARAMETRO ---
+% FigTag = figure;
+% ax = axes;
+% 
+% % Calcolo errore
+% param_error = Xs(:,5) - Xobs(:,5);
+% 
+% h1 = plot(time, param_error, 'k'); % Nero per l'errore
+% h1.LineWidth = 1.5;
+% grid on; hold on;
+% 
+% % Linea dello zero per riferimento
+% yline(0, 'r--', 'LineWidth', 1);
+% 
+% xlabel('$t$ [s]', 'Interpreter', 'LaTex')
+% ylabel('$\Delta \mu$ error', 'Interpreter', 'LaTex')
+% legend({'$(\mu_{true} - \hat{\mu}_{est})$'}, 'Interpreter', 'LaTex', 'Location', 'best')
+% title('Parameter Estimation Convergence Error', 'Interpreter', 'LaTex')
+% 
+% ax.FontSize = 16;
+% ax.TickLabelInterpreter = 'LaTex';
+% 
+% % print(FigTag,'figA4_Err.jpeg','-djpeg','-r600')
